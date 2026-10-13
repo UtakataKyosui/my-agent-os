@@ -1,0 +1,20 @@
+services:
+  cloudflare-os:
+    build: .
+    # Fallback only: the app normally runs under launchd on the host, which owns port 8787.
+    # Auto-restart here would race that listener whenever the Docker daemon comes back.
+    restart: "no"
+    ports:
+      - "8787:8788"
+    volumes:
+      # Credentials come from a per-package .env rather than the root .dev.vars: both reach the
+      # Worker, but wrangler treats config "vars" as public and prints CLIENT_SECRET in the clear,
+      # while .env values are masked as "(hidden)".
+      - ./packages/gatekeeper-github/.env:/app/packages/gatekeeper-github/.env:ro
+      - ./packages/gatekeeper-google/.env:/app/packages/gatekeeper-google/.env:ro
+      - ./packages/gatekeeper-notion/.env:/app/packages/gatekeeper-notion/.env:ro
+      # Local-mode data (Durable Objects, KV, R2) lives here; without this it is lost on rebuild.
+      - wrangler-state:/app/.wrangler
+
+volumes:
+  wrangler-state:
